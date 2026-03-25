@@ -104,11 +104,14 @@ const initDB = async () => {
             );
         `);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS api_key VARCHAR(255) UNIQUE;`);
+        // تم نقل هذا السطر ليكون في مكانه الصحيح داخل الدالة
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR(255) UNIQUE;`);
+        
         console.log("✅ Database Tables Verified on Supabase");
     } catch (err) {
         console.error("❌ Database Initialization Error:", err.message);
     }
-};await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR(255) UNIQUE;`);
+};
 initDB();
 
 const MY_TOKEN = "ed0002c02e888376f59dccb780e958e7";
@@ -275,7 +278,6 @@ app.get('/api/history', async (req, res) => {
 app.post('/api/redeem-promo', async (req, res) => {
     const { userId, code } = req.body;
     try {
-        // نستخدم UPDATE ... RETURNING لضمان عدم استخدام الكود مرتين في نفس اللحظة (حماية من الهاكرز)
         const promoRes = await pool.query(
             `UPDATE promo_codes SET is_used = true, used_by = $1, used_at = CURRENT_TIMESTAMP WHERE code = $2 AND is_used = false RETURNING amount`,
             [userId, code]
@@ -287,10 +289,7 @@ app.post('/api/redeem-promo', async (req, res) => {
 
         const amount = parseFloat(promoRes.rows[0].amount);
 
-        // إضافة الرصيد للعميل
         await pool.query(`UPDATE users SET balance = balance + $1 WHERE id = $2`, [amount, userId]);
-        
-        // تسجيل العملية في السجل
         logOperation(userId, 'Redeem', code, 'Promo Code', `+$${amount}`, 'Success');
 
         res.json({ status: "success", msg: `Success! $${amount} has been added to your balance.` });
@@ -298,6 +297,7 @@ app.post('/api/redeem-promo', async (req, res) => {
         res.status(500).json({ status: "failed", msg: "Database error occurred." });
     }
 });
+
 app.post('/api/history/clear', async (req, res) => {
     try {
         await pool.query(`DELETE FROM operation_history WHERE "userId" = $1`, [req.body.userId]);
@@ -357,13 +357,13 @@ app.get('/api/admin/requests', async (req, res) => {
         res.json(result.rows);
     } catch(err) { res.json([]); }
 });
+
 // --- Generate Promo Codes (For Admin) ---
 app.post('/api/admin/generate-promo', async (req, res) => {
     const { amount, count } = req.body;
     try {
         let codes = [];
         for(let i=0; i<count; i++) {
-            // توليد كود عشوائي احترافي مثل: MS-A1B2-C3D4
             const code = 'MS-' + crypto.randomBytes(2).toString('hex').toUpperCase() + '-' + crypto.randomBytes(2).toString('hex').toUpperCase();
             await pool.query(`INSERT INTO promo_codes (code, amount) VALUES ($1, $2)`, [code, amount]);
             codes.push(code);
@@ -373,11 +373,11 @@ app.post('/api/admin/generate-promo', async (req, res) => {
         res.status(500).json({ status: "failed", msg: "Database error." });
     }
 });
+
 // ============================================================================
 // --- MICROSERIAL PUBLIC API (For Users' Bots & Websites) ---
 // ============================================================================
 
-// 1. مسار لتوليد أو جلب مفتاح الـ API الخاص بالعميل للوحة التحكم
 app.get('/api/user/apikey', async (req, res) => {
     const { userId } = req.query;
     try {
@@ -386,7 +386,6 @@ app.get('/api/user/apikey', async (req, res) => {
         
         let apiKey = result.rows[0].api_key;
         if (!apiKey) {
-            // توليد مفتاح جديد إذا لم يكن لديه واحد
             apiKey = 'mk_' + crypto.randomBytes(16).toString('hex');
             await pool.query(`UPDATE users SET api_key = $1 WHERE id = $2`, [apiKey, userId]);
         }
@@ -403,7 +402,6 @@ app.post('/api/user/apikey/regenerate', async (req, res) => {
     } catch (e) { res.status(500).json({ status: "failed" }); }
 });
 
-// 2. مسارات الـ API العامة (التي سيستخدمها العملاء في تطبيقاتهم)
 const authenticateAPI = async (req, res, next) => {
     const apikey = req.query.apikey || req.headers['x-api-key'];
     if (!apikey) return res.status(401).json({ error: "API Key is missing." });
@@ -412,12 +410,11 @@ const authenticateAPI = async (req, res, next) => {
         const result = await pool.query(`SELECT id, username, balance FROM users WHERE api_key = $1`, [apikey]);
         if (result.rows.length === 0) return res.status(401).json({ error: "Invalid API Key." });
         
-        req.apiUser = result.rows[0]; // تمرير بيانات العميل للمسار التالي
+        req.apiUser = result.rows[0]; 
         next();
     } catch (e) { res.status(500).json({ error: "Internal Server Error." }); }
 };
 
-// مسار جلب الرصيد عبر الـ API
 app.get('/api/v1/balance', authenticateAPI, (req, res) => {
     res.json({
         success: true,
@@ -427,7 +424,6 @@ app.get('/api/v1/balance', authenticateAPI, (req, res) => {
     });
 });
 
-// مسار استخراج الـ CID عبر الـ API
 app.get('/api/v1/get-cid', authenticateAPI, async (req, res) => {
     const { iid } = req.query;
     const user = req.apiUser;
@@ -460,9 +456,10 @@ app.get('/api/v1/get-cid', authenticateAPI, async (req, res) => {
 
     } catch (e) { res.status(500).json({ error: "Provider Connection Error." }); }
 });
+
 app.get('/api/v1/check-key', authenticateAPI, async (req, res) => {
     const { key } = req.query;
-    const user = req.apiUser; // بيانات العميل القادمة من الـ API Key
+    const user = req.apiUser; 
 
     if (!key) return res.status(400).json({ error: "Missing 'key' parameter." });
 
@@ -522,6 +519,7 @@ app.post('/api/admin/add-balance', async (req, res) => {
         res.json({ status: "success", msg: `Successfully added $${amount}` });
     } catch(err) { res.status(500).json({ status: "failed" }); }
 });
+
 // =========================================================
 // --- مسارات ربط بوت تليجرام (Telegram Auth) ---
 // =========================================================
@@ -531,7 +529,6 @@ app.post('/api/telegram/link', async (req, res) => {
         const result = await pool.query(`SELECT id, username FROM users WHERE api_key = $1`, [apiKey]);
         if (result.rows.length === 0) return res.status(400).json({ status: "failed", msg: "Invalid API Key." });
         
-        // ربط حساب تليجرام بهذا العميل
         await pool.query(`UPDATE users SET telegram_chat_id = $1 WHERE id = $2`, [chatId.toString(), result.rows[0].id]);
         res.json({ status: "success", username: result.rows[0].username, msg: "Account linked successfully!" });
     } catch (err) { res.status(500).json({ status: "failed", msg: "Database error." }); }
@@ -545,4 +542,5 @@ app.get('/api/telegram/user', async (req, res) => {
         res.json({ status: "success", userId: result.rows[0].id, apiKey: result.rows[0].api_key });
     } catch (err) { res.status(500).json({ status: "failed" }); }
 });
+
 module.exports = app;
