@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microserial | License Admin Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #e2e8f0; }
+        .sidebar-item { border-left: 3px solid transparent; transition: all 0.2s; }
+        .sidebar-item:hover { background-color: rgba(255,255,255,0.05); color: white; }
+        .sidebar-active { background-color: rgba(255,255,255,0.1); color: white; border-left-color: #3b82f6; }
+        .stat-card { background: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-top-width: 4px; }
+        .bg-auth-page { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); }
+        .auth-glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .input-icon-wrapper input { padding-left: 2.5rem; }
+        .input-icon-wrapper i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+        
+        /* Toast Notification Styles */
+        .toast-enter { transform: translateX(100%); opacity: 0; }
+        .toast-enter-active { transform: translateX(0); opacity: 1; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .toast-leave { transform: translateX(0); opacity: 1; }
+        .toast-leave-active { transform: translateX(100%); opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="overflow-hidden h-screen text-slate-800 relative">
+
+    <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
+
+    <div id="auth-view" class="bg-slate-200 fixed inset-0 z-50 overflow-y-auto flex flex-col p-4 sm:p-6">
+        <div class="m-auto shrink-0 bg-white rounded-2xl w-full max-w-[1000px] shadow-2xl flex flex-col md:flex-row overflow-hidden min-h-[600px]">
+            <div class="bg-auth-page md:w-5/12 p-8 md:p-10 text-white flex flex-col justify-between relative">
+                <div class="absolute top-[-10%] right-[-10%] w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+                <div class="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-teal-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+                
+                <div class="relative z-10">
+                    <div class="flex items-center gap-3 mb-8">
+                        <div class="w-10 h-10 bg-white/10 rounded flex items-center justify-center backdrop-blur-sm border border-white/20">
+                            <i class="fas fa-shield-alt text-xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold tracking-widest leading-none">Microserial</h2>
+                            <p class="text-[9px] uppercase tracking-[0.2em] text-blue-200 mt-1">License Admin Portal</p>
+                        </div>
+                    </div>
+                    <span class="auth-glass px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase mb-6 inline-block hidden sm:inline-block">Secure Access • Daily Operations</span>
+                    <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-4">Control keys, users, credits and API access.</h1>
+                    <p class="text-blue-100 text-sm leading-relaxed mb-8 opacity-90 hidden sm:block">A cleaner command center for CID retrieval, billing, account management and admin workflows. Built for fast repeat work without losing clarity.</p>
+                    
+                    <div class="grid grid-cols-2 gap-3 mb-8 hidden sm:grid">
+                        <div class="auth-glass p-4 rounded-xl"><h4 class="font-bold text-lg">4</h4><p class="text-[10px] text-blue-200 mt-1">core tools in one panel</p></div>
+                        <div class="auth-glass p-4 rounded-xl"><h4 class="font-bold text-lg">24/7</h4><p class="text-[10px] text-blue-200 mt-1">self-serve account access</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full md:w-7/12 bg-white p-6 sm:p-8 md:p-12 flex flex-col justify-center">
+                <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Welcome back</h2>
+                <p class="text-sm text-slate-500 mb-8">Sign in to manage licenses, balance, account settings, and your API workspace.</p>
+                
+                <div class="flex border-b border-slate-200 mb-8 overflow-x-auto">
+                    <button id="tab-login" onclick="toggleAuth('login')" class="whitespace-nowrap pb-3 px-4 sm:px-6 text-sm font-bold border-b-2 border-[#0066cc] text-[#0066cc] transition">
+                        <i class="fas fa-user mr-2"></i> User
+                    </button>
+                    <button id="tab-reg" onclick="toggleAuth('register')" class="whitespace-nowrap pb-3 px-4 sm:px-6 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition">
+                        <i class="fas fa-user-plus mr-2"></i> Register
+                    </button>
+                </div>
+
+                <div id="login-form" class="space-y-5 animate-fade-in">
+                    <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Username</label><div class="relative input-icon-wrapper"><i class="fas fa-user"></i><input type="text" id="log-user" placeholder="Username" class="w-full p-3.5 border border-slate-300 rounded-lg outline-none focus:border-[#0066cc] text-sm bg-slate-50 focus:bg-white transition"></div></div>
+                    <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Password</label><div class="relative input-icon-wrapper"><i class="fas fa-lock"></i><input type="password" id="log-pass" placeholder="Password" class="w-full p-3.5 border border-slate-300 rounded-lg outline-none focus:border-[#0066cc] text-sm bg-slate-50 focus:bg-white transition"><button class="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600" onclick="const p=document.getElementById('log-pass'); p.type=p.type==='password'?'text':'password';"><i class="fas fa-eye"></i></button></div></div>
+                    <button onclick="handleLogin()" class="w-full bg-[#0066cc] text-white font-bold py-3.5 rounded-lg hover:bg-blue-700 transition shadow-lg mt-4">Sign In</button>
+                    <div class="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 text-xs mt-6">
+                        <a href="#" onclick="toggleAuth('forgot')" class="text-orange-500 font-medium hover:underline"><i class="fas fa-key mr-1"></i> Forgot Password?</a>
+                        <span class="text-slate-300 hidden sm:inline">|</span>
+                        <span class="text-slate-500">No account? <a href="#" onclick="toggleAuth('register')" class="text-[#0066cc] font-bold hover:underline">Register here</a></span>
+                    </div>
+                </div>
+
+                <div id="reg-form" class="space-y-5 hidden animate-fade-in">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Full Name</label><div class="relative input-icon-wrapper"><i class="fas fa-id-badge"></i><input type="text" id="reg-fullname" placeholder="Your full name" class="w-full p-3.5 border border-slate-300 rounded-lg outline-none focus:border-[#0066cc] text-sm bg-slate-50 focus:bg-white transition"></div></div>
+                        <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Username</label><div class="relative input-icon-wrapper"><i class="fas fa-user"></i><input type="text" id="reg-user" placeholder="Choose a username" class="w-full p-3.5 border border-slate-300 rounded-lg outline-none focus:border-[#0066cc] text-sm bg-slate-50 focus:bg-white transition"></div></div>
+                    </div>
+                    <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Email Address</label><div class="relative input-icon-wrapper"><i class="fas fa-envelope"></i><input type="email" id="reg-email" placeholder="your@email.com" class="w-full p-3.5 border border-slate-300 rounded-lg outline-none focus:border-[#0066cc] text-sm bg-slate-50 focus:bg-white transition"></div></div>
+                    <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Password</label><div class="relative input-icon-wrapper"><i class="fas fa-lock"></i><input type="password" id="reg-pass" placeholder="Min. 6 characters" class="w-full p-3.5 border border-slate-300 rounded-lg outline-none focus:border-[#0066cc] text-sm bg-slate-50 focus:bg-white transition"></div></div>
+                    <button onclick="handleRegister()" class="w-full bg-[#0066cc] text-white font-bold py-3.5 rounded-lg hover:bg-blue-700 transition shadow-lg mt-4 flex justify-center items-center gap-2"><i class="fas fa-envelope-open-text"></i> Create Account</button>
+                    <div class="text-center text-xs mt-6"><span class="text-slate-500">Already have an account?</span> <a href="#" onclick="toggleAuth('login')" class="text-[#0066cc] font-bold hover:underline">Sign in</a></div>
+                </div>
+
+                <div id="forgot-form" class="space-y-5 hidden animate-fade-in">
+                    <p class="text-sm text-slate-500">Enter your email address and we'll send you instructions to reset your password.</p>
+                    <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Email Address</label><div class="relative input-icon-wrapper"><i class="fas fa-envelope"></i><input type="email" id="forgot-email" placeholder="your@email.com" class="w-full p-3.5 border border-slate-300 rounded-lg outline-none focus:border-orange-500 text-sm bg-slate-50 focus:bg-white transition"></div></div>
+                    <button onclick="handleForgot()" class="w-full bg-orange-500 text-white font-bold py-3.5 rounded-lg hover:bg-orange-600 transition shadow-lg mt-4 flex justify-center items-center gap-2"><i class="fas fa-paper-plane"></i> Send Reset Link</button>
+                    <div class="text-center text-xs mt-6"><span class="text-slate-500">Remember your password?</span> <a href="#" onclick="toggleAuth('login')" class="text-[#0066cc] font-bold hover:underline">Back to Sign in</a></div>
+                </div>
+
+                <div id="reset-form" class="space-y-5 hidden animate-fade-in">
+                    <p class="text-sm text-slate-500">Please enter your new password below.</p>
+                    <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">New Password</label><div class="relative input-icon-wrapper"><i class="fas fa-lock"></i><input type="password" id="reset-pass" placeholder="Min. 6 characters" class="w-full p-3.5 border border-slate-300 rounded-lg outline-none focus:border-blue-500 text-sm bg-slate-50 focus:bg-white transition"></div></div>
+                    <button onclick="submitNewPassword()" class="w-full bg-[#0066cc] text-white font-bold py-3.5 rounded-lg hover:bg-blue-700 transition shadow-lg mt-4 flex justify-center items-center gap-2"><i class="fas fa-save"></i> Save Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-view" class="hidden h-screen flex flex-col">
+        
+        <header class="h-14 bg-[#0066cc] text-white flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-md z-20 relative">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="toggleMobileMenu()" class="md:hidden text-white hover:text-blue-200 transition text-xl w-8 h-8 flex items-center justify-center rounded">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <i class="fas fa-shield-alt text-xl hidden sm:block"></i>
+                <span class="font-bold text-lg tracking-wide hidden sm:block">Microserial</span>
+                <span class="font-bold text-lg tracking-wide sm:hidden">MS Panel</span>
+                <span class="text-blue-200 text-sm ml-2 md:ml-4 border-l border-blue-400 pl-2 md:pl-4" id="nav-title">Dashboard</span>
+            </div>
+            <div class="flex items-center gap-3 sm:gap-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-bold leading-tight" id="header-name">User</p>
+                    <p class="text-[10px] text-blue-200 uppercase tracking-wider" id="header-role">Member</p>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-blue-800 flex items-center justify-center font-bold shadow-inner" id="header-initial">U</div>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden relative">
+            
+            <div id="sidebar-overlay" onclick="toggleMobileMenu()" class="absolute inset-0 bg-slate-900/60 z-30 hidden opacity-0 transition-opacity duration-300 md:hidden"></div>
+
+            <aside id="app-sidebar" class="absolute md:relative inset-y-0 left-0 transform -translate-x-full md:translate-x-0 w-64 bg-[#1c2434] text-slate-400 flex flex-col overflow-y-auto text-sm shrink-0 shadow-2xl md:shadow-xl z-40 transition-transform duration-300 ease-in-out h-full">
+                <div class="p-4 flex justify-between items-center md:hidden border-b border-slate-700/50">
+                    <span class="text-xs font-bold text-white uppercase tracking-widest">Menu</span>
+                    <button onclick="toggleMobileMenu()" class="text-slate-400 hover:text-white w-8 h-8 flex items-center justify-center rounded bg-slate-800"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="p-4">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 px-3">Main</p>
+                    <button onclick="switchTab('dashboard')" class="w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded sidebar-item sidebar-active" id="btn-dashboard"><i class="fas fa-th-large w-5 text-center"></i> Dashboard</button>
+                    <button onclick="switchTab('cid')" class="w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded sidebar-item" id="btn-cid"><i class="fas fa-key w-5 text-center"></i> Get CID</button>
+                    <button onclick="switchTab('check')" class="w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded sidebar-item" id="btn-check"><i class="fas fa-search w-5 text-center"></i> Check Key</button>
+                    <button onclick="switchTab('recharge')" class="w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded sidebar-item text-green-400" id="btn-recharge"><i class="fas fa-wallet w-5 text-center"></i> Top-up Balance</button>
+                    <button onclick="switchTab('downloads')" class="w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded sidebar-item text-blue-300 mt-2 border border-blue-800/30" id="btn-downloads"><i class="fas fa-cloud-download-alt w-5 text-center"></i> Downloads</button>
+                </div>
+                <div class="p-4 border-t border-slate-700/50 mt-auto md:mt-0">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 px-3">Account</p>
+                    <button onclick="switchTab('history')" class="w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded sidebar-item" id="btn-history"><i class="fas fa-history w-5 text-center"></i> History</button>
+                    <button onclick="switchTab('api')" class="w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded sidebar-item text-indigo-400 mt-2 border border-indigo-800/30" id="btn-api"><i class="fas fa-code w-5 text-center"></i> API Docs</button>
+                    <div id="admin-menu" class="hidden">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-orange-500 mb-2 px-3 mt-4">Administration</p>
+                        <button onclick="switchTab('admin')" class="w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded sidebar-item text-orange-400" id="btn-admin"><i class="fas fa-users-cog w-5 text-center"></i> Manage Portal</button>
+                    </div>
+                    <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-3 md:py-2.5 rounded sidebar-item mt-4 text-slate-500 hover:text-red-400 transition-colors"><i class="fas fa-sign-out-alt w-5 text-center"></i> Logout</button>
+                </div>
+            </aside>
+
+            <main class="flex-1 overflow-y-auto block w-full bg-[#f8fafc]">
+                <div class="min-h-full flex flex-col p-4 md:p-6 lg:p-8">
+                    
+                    <div id="view-dashboard" class="max-w-6xl mx-auto space-y-6 animate-fade-in w-full flex-1">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900">Dashboard</h2>
+                            <p class="text-sm text-slate-500 mt-1">Welcome back, <span id="dash-welcome-name" class="font-bold text-slate-700"></span></p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">My Balance</p>
+                                <h3 class="text-3xl font-black text-green-600 mt-2" id="stat-balance">$0.00</h3>
+                                <p class="text-xs text-slate-400 mt-2">Panel wallet</p>
+                            </div>
+                            <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-[#0066cc]"></div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">CID Balance</p>
+                                <h3 class="text-3xl font-black text-[#0066cc] mt-2" id="stat-cid-avail">0</h3>
+                                <p class="text-xs text-slate-400 mt-2">Available CIDs</p>
+                            </div>
+                            <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-orange-400"></div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">CIDs Used</p>
+                                <h3 class="text-3xl font-black text-slate-800 mt-2" id="stat-cid-used">0</h3>
+                                <p class="text-xs text-slate-400 mt-2">Total consumed</p>
+                            </div>
+                            <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-purple-500"></div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Ops</p>
+                                <h3 class="text-3xl font-black text-slate-800 mt-2" id="stat-ops">0</h3>
+                                <p class="text-xs text-slate-400 mt-2">Overall operations</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                            <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+                                <div class="p-5 border-b border-slate-100 flex items-center gap-2">
+                                    <div class="w-2 h-2 rounded-full bg-[#0066cc]"></div>
+                                    <h3 class="font-bold text-slate-800 text-sm tracking-wide">Operation Summary</h3>
+                                </div>
+                                <div class="p-2 space-y-1">
+                                    <div onclick="switchTab('cid')" class="flex justify-between items-center p-4 rounded-lg hover:bg-slate-50 cursor-pointer transition">
+                                        <div class="flex items-center gap-3 text-sm text-slate-600 font-medium"><i class="fas fa-shield-alt text-slate-400 w-5 text-center"></i> Get CID</div>
+                                        <span class="font-mono font-bold text-slate-800 bg-slate-100 px-3 py-1 rounded-md text-xs" id="sum-cid">0</span>
+                                    </div>
+                                    <div onclick="switchTab('check')" class="flex justify-between items-center p-4 rounded-lg hover:bg-slate-50 cursor-pointer transition">
+                                        <div class="flex items-center gap-3 text-sm text-slate-600 font-medium"><i class="fas fa-search text-blue-400 w-5 text-center"></i> Check Key</div>
+                                        <span class="font-mono font-bold text-slate-800 bg-slate-100 px-3 py-1 rounded-md text-xs" id="sum-check">0</span>
+                                    </div>
+                                    <div onclick="switchTab('recharge')" class="flex justify-between items-center p-4 rounded-lg hover:bg-slate-50 cursor-pointer transition">
+                                        <div class="flex items-center gap-3 text-sm text-slate-600 font-medium"><i class="fas fa-wallet text-green-500 w-5 text-center"></i> Auto Top-up</div>
+                                        <span class="font-mono font-bold text-green-600 bg-green-50 px-3 py-1 rounded-md text-[10px] uppercase tracking-widest">Active</span>
+                                    </div>
+                                    <div onclick="switchTab('downloads')" class="flex justify-between items-center p-4 rounded-lg hover:bg-slate-50 cursor-pointer transition">
+                                        <div class="flex items-center gap-3 text-sm text-slate-600 font-medium"><i class="fas fa-cloud-download-alt text-purple-500 w-5 text-center"></i> Downloads</div>
+                                        <span class="font-mono font-bold text-green-600 bg-green-50 px-3 py-1 rounded-md text-[10px] uppercase tracking-widest">Active</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-6">
+                                <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+                                    <div class="p-5 border-b border-slate-100 flex items-center gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                                        <h3 class="font-bold text-slate-800 text-sm tracking-wide">Quick Actions</h3>
+                                    </div>
+                                    <div class="p-4 sm:p-6 grid grid-cols-2 gap-3 sm:gap-4">
+                                        <button onclick="switchTab('cid')" class="bg-[#0066cc] text-white py-3 md:py-3.5 rounded-lg text-xs md:text-sm font-bold shadow hover:bg-blue-700 transition flex justify-center items-center gap-2"><i class="fas fa-shield-alt"></i> Get CID</button>
+                                        <button onclick="switchTab('check')" class="bg-white border border-slate-200 text-slate-700 py-3 md:py-3.5 rounded-lg text-xs md:text-sm font-bold shadow-sm hover:border-blue-400 hover:text-[#0066cc] transition flex justify-center items-center gap-2"><i class="fas fa-search text-blue-400"></i> Check Key</button>
+                                        <button onclick="switchTab('recharge')" class="bg-white border border-slate-200 text-slate-700 py-3 md:py-3.5 rounded-lg text-xs md:text-sm font-bold shadow-sm hover:border-green-500 hover:text-green-600 transition flex justify-center items-center gap-2"><i class="fas fa-wallet text-green-500"></i> Top-up</button>
+                                        <button onclick="switchTab('downloads')" class="bg-white border border-slate-200 text-slate-700 py-3 md:py-3.5 rounded-lg text-xs md:text-sm font-bold shadow-sm hover:border-purple-400 hover:text-purple-600 transition flex justify-center items-center gap-2"><i class="fas fa-cloud-download-alt text-purple-500"></i> Download</button>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+                                    <div class="p-5 border-b border-slate-100 flex items-center gap-2">
+                                        <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                                        <h3 class="font-bold text-slate-800 text-sm tracking-wide">My CID Account</h3>
+                                    </div>
+                                    <div class="p-6 space-y-4">
+                                        <div class="flex justify-between items-center text-sm"><span class="text-slate-500 font-medium">Estimated Total Capacity</span><span class="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded" id="cid-acc-total">0</span></div>
+                                        <div class="flex justify-between items-center text-sm border-t border-slate-50 pt-4"><span class="text-slate-500 font-medium">Used CIDs</span><span class="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded" id="cid-acc-used">0</span></div>
+                                        <div class="flex justify-between items-center text-sm border-t border-slate-50 pt-4"><span class="text-slate-800 font-black">Remaining</span><span class="font-mono font-black text-green-600 text-lg" id="cid-acc-rem">0</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-tool" class="hidden max-w-6xl mx-auto w-full flex-1">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4">
+                            <div>
+                                <h3 id="tool-title" class="text-xl md:text-2xl font-bold text-slate-800"></h3>
+                                <p id="tool-subtitle" class="text-xs md:text-sm text-slate-500 mt-1 hidden"></p>
+                            </div>
+                            <div id="tool-actions"></div>
+                        </div>
+                        <div id="tool-content"></div>
+                    </div>
+
+                    <footer class="mt-12 shrink-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden w-full max-w-6xl mx-auto">
+                        <div class="bg-slate-50 border-b border-slate-200 p-6 flex flex-col md:flex-row justify-between items-center gap-6 md:gap-4 text-center md:text-left">
+                            <div class="flex flex-col md:flex-row items-center gap-4">
+                                <i class="fab fa-microsoft text-[#00a4ef] text-4xl"></i>
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm leading-tight tracking-wide">Microsoft Authorized Partner</h4>
+                                    <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">Official Software Reseller</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-5 text-2xl text-slate-300 items-center justify-center">
+                                <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mr-2 hidden md:block">Secured By:</span>
+                                <i class="fab fa-cc-visa hover:text-blue-700 transition cursor-pointer"></i>
+                                <i class="fab fa-cc-mastercard hover:text-orange-500 transition cursor-pointer"></i>
+                                <i class="fab fa-cc-stripe hover:text-indigo-500 transition cursor-pointer"></i>
+                                <i class="fab fa-bitcoin hover:text-yellow-500 transition cursor-pointer"></i>
+                                <span class="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></span>
+                                <i class="fas fa-shield-alt text-green-500 text-xl" title="256-bit SSL Secured"></i>
+                            </div>
+                        </div>
+                        <div class="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-2 text-[#0066cc] mb-4">
+                                    <i class="fas fa-shield-alt text-xl"></i>
+                                    <span class="font-bold text-lg tracking-wide">Microserial</span>
+                                </div>
+                                <p class="text-xs text-slate-500 leading-relaxed md:pr-4">Microserial is your trusted partner for digital software licenses. We provide instant, secure, and fully verified product keys directly from official servers.</p>
+                            </div>
+                            <div>
+                                <h4 class="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2 inline-block">Company Details</h4>
+                                <ul class="text-xs text-slate-500 space-y-3">
+                                    <li class="flex gap-3 items-start"><i class="fas fa-building mt-0.5 text-[#0066cc]"></i> <span><strong class="text-slate-700">Microserial LTD</strong><br>Registration No: <span class="font-mono text-slate-600">13968945</span></span></li>
+                                    <li class="flex gap-3 items-start"><i class="fas fa-map-marker-alt mt-0.5 text-[#0066cc]"></i> <span>71-75 Shelton Street,<br>Covent Garden, London,<br>UK, WC2H 9JQ</span></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="text-[11px] font-bold text-slate-800 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2 inline-block">Legal & Trust</h4>
+                                <ul class="text-xs text-slate-500 space-y-2.5">
+                                    <li class="flex items-center gap-2 text-green-600 font-medium"><i class="fas fa-check-circle"></i> Verified Business Entity</li>
+                                    <li class="flex items-center gap-2 text-slate-600"><i class="fas fa-lock text-slate-400"></i> 256-bit SSL Encryption</li>
+                                    <li><a href="#" class="hover:text-[#0066cc] transition flex items-center gap-2"><i class="fas fa-angle-right text-[10px] text-slate-300"></i> Terms of Service</a></li>
+                                    <li><a href="#" class="hover:text-[#0066cc] transition flex items-center gap-2"><i class="fas fa-angle-right text-[10px] text-slate-300"></i> Privacy Policy</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="bg-[#1c2434] text-slate-400 text-[10px] text-center py-4 px-4 uppercase tracking-wider font-medium leading-relaxed">
+                            &copy; 2026 Microserial LTD. All rights reserved. <span class="block mt-1 sm:inline sm:mt-0 sm:ml-1">| All product names and logos are property of their respective owners.</span>
+                        </div>
+                    </footer>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const API = "/api"; 
+        let user = JSON.parse(localStorage.getItem('micro_user'));
+        let currentHistoryData = []; 
+        let allDynamicDownloads = []; 
+
+        window.onload = () => { 
+            const urlParams = new URLSearchParams(window.location.search);
+            const resetUserId = urlParams.get('userId');
+            if (resetUserId) { toggleAuth('reset'); } else if(user) { initDashboard(); }
+        }
+
+        // --- Custom Toast Notification System ---
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            
+            let bgColor = 'bg-slate-800';
+            let icon = '<i class="fas fa-info-circle text-blue-400"></i>';
+
+            if (type === 'success') {
+                bgColor = 'bg-green-600';
+                icon = '<i class="fas fa-check-circle text-white"></i>';
+            } else if (type === 'error') {
+                bgColor = 'bg-red-500';
+                icon = '<i class="fas fa-exclamation-circle text-white"></i>';
+            }
+
+            toast.className = `flex items-center gap-3 min-w-[280px] sm:min-w-[300px] max-w-md px-4 sm:px-5 py-3 sm:py-4 rounded-lg shadow-2xl text-white text-sm font-medium pointer-events-auto toast-enter ${bgColor}`;
+            
+            toast.innerHTML = `
+                <div class="text-xl">${icon}</div>
+                <span class="flex-1">${message}</span>
+                <button onclick="this.parentElement.remove()" class="text-white/70 hover:text-white ml-2 focus:outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-enter-active');
+            });
+
+            setTimeout(() => {
+                toast.classList.remove('toast-enter-active');
+                toast.classList.add('toast-leave-active');
+                setTimeout(() => toast.remove(), 300); 
+            }, 4000);
+        }
+
+        // --- Mobile Menu Logic ---
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('app-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            
+            if (sidebar.classList.contains('-translate-x-full')) {
+                // Open Sidebar
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            } else {
+                // Close Sidebar
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        // --- Auth UI Logic ---
+        function toggleAuth(view) {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('reg-form').classList.add('hidden');
+            document.getElementById('forgot-form').classList.add('hidden');
+            document.getElementById('reset-form').classList.add('hidden');
+            
+            const tabLogin = document.getElementById('tab-login');
+            const tabReg = document.getElementById('tab-reg');
+            
+            if(view === 'login') {
+                document.getElementById('login-form').classList.remove('hidden');
+                tabLogin.className = "whitespace-nowrap pb-3 px-4 sm:px-6 text-sm font-bold border-b-2 border-[#0066cc] text-[#0066cc] transition";
+                tabReg.className = "whitespace-nowrap pb-3 px-4 sm:px-6 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition";
+            } else if (view === 'register') {
+                document.getElementById('reg-form').classList.remove('hidden');
+                tabReg.className = "whitespace-nowrap pb-3 px-4 sm:px-6 text-sm font-bold border-b-2 border-[#0066cc] text-[#0066cc] transition";
+                tabLogin.className = "whitespace-nowrap pb-3 px-4 sm:px-6 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition";
+            } else if (view === 'forgot' || view === 'reset') {
+                if(view === 'forgot') document.getElementById('forgot-form').classList.remove('hidden');
+                if(view === 'reset') document.getElementById('reset-form').classList.remove('hidden');
+                tabLogin.className = "whitespace-nowrap pb-3 px-4 sm:px-6 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition";
+                tabReg.className = "whitespace-nowrap pb-3 px-4 sm:px-6 text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition";
+            }
+        }
+
+        async function handleLogin() {
+            const username = document.getElementById('log-user').value;
+            const password = document.getElementById('log-pass').value;
+            if(!username || !password) return showToast("Please fill in all fields.", "error");
+            try {
+                const res = await fetch(`${API}/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username, password }) });
+                const data = await res.json();
+                if(data.status === 'success') { user = data.user; localStorage.setItem('micro_user', JSON.stringify(user)); initDashboard(); } 
+                else showToast(data.msg, "error");
+            } catch(e) { showToast("Server connection error.", "error"); }
+        }
+
+        async function handleRegister() {
+            const username = document.getElementById('reg-user').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-pass').value;
+            if(!username || !email || !password) return showToast("Please fill in all required fields.", "error");
+            try {
+                const res = await fetch(`${API}/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username, email, password }) });
+                const data = await res.json();
+                showToast(data.msg, data.status === 'success' ? 'success' : 'error');
+                if(data.status === 'success') toggleAuth('login');
+            } catch(e) { showToast("Server connection error.", "error"); }
+        }
+
+        async function handleForgot() {
+            const email = document.getElementById('forgot-email').value;
+            if(!email) return showToast("Please enter your email address.", "error");
+            try {
+                const res = await fetch(`${API}/forgot-password`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email }) });
+                const data = await res.json();
+                showToast(data.msg, data.status === 'success' ? 'success' : 'error');
+                if(data.status === 'success') { toggleAuth('login'); document.getElementById('forgot-email').value = ''; }
+            } catch(e) { showToast("Server connection error.", "error"); }
+        }
+
+        async function submitNewPassword() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('userId');
+            const newPassword = document.getElementById('reset-pass').value;
+            if(!newPassword || newPassword.length < 6) return showToast("Please enter a valid password (at least 6 characters).", "error");
+            try {
+                const res = await fetch(`${API}/reset-password`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId, newPassword }) });
+                const data = await res.json();
+                showToast(data.msg, data.status === 'success' ? 'success' : 'error');
+                if(data.status === 'success') { 
+                    setTimeout(() => { window.location.href = window.location.pathname; }, 2000);
+                }
+            } catch(e) { showToast("Server connection error.", "error"); }
+        }
+
+        async function initDashboard() {
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('app-view').classList.remove('hidden');
+            document.getElementById('header-name').innerText = user.username;
+            document.getElementById('dash-welcome-name').innerText = user.username;
+            document.getElementById('header-initial').innerText = user.username.charAt(0).toUpperCase();
+            
+            if(user.username === 'Admin1' || user.role === 'admin') {
+                document.getElementById('admin-menu').classList.remove('hidden');
+                document.getElementById('header-role').innerText = 'Administrator';
+                document.getElementById('header-role').classList.replace('text-blue-200', 'text-orange-300');
+            }
+            await refreshUserData();
+            switchTab('dashboard');
+        }
+
+        async function refreshUserData() {
+            try {
+                const res = await fetch(`${API}/me?userId=${user.id}`);
+                const data = await res.json();
+                if(data.status === 'success') { user = data.user; localStorage.setItem('micro_user', JSON.stringify(user)); }
+            } catch(e) {}
+            
+            const estCids = Math.floor(user.balance / 0.07);
+            const totalCapacity = estCids + user.cid_count;
+            
+            document.getElementById('stat-balance').innerText = `$${user.balance.toFixed(2)}`;
+            document.getElementById('stat-cid-avail').innerText = estCids;
+            document.getElementById('stat-cid-used').innerText = user.cid_count;
+            document.getElementById('stat-ops').innerText = user.cid_count + user.check_count;
+
+            if (document.getElementById('sum-cid')) {
+                document.getElementById('sum-cid').innerText = user.cid_count;
+                document.getElementById('sum-check').innerText = user.check_count;
+                document.getElementById('cid-acc-total').innerText = totalCapacity;
+                document.getElementById('cid-acc-used').innerText = user.cid_count;
+                document.getElementById('cid-acc-rem').innerText = estCids;
+            }
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('sidebar-active'));
+            if(document.getElementById(`btn-${tab}`)) document.getElementById(`btn-${tab}`).classList.add('sidebar-active');
+
+            // Close mobile sidebar automatically on selection
+            if (window.innerWidth < 768) {
+                const sidebar = document.getElementById('app-sidebar');
+                if (!sidebar.classList.contains('-translate-x-full')) {
+                    toggleMobileMenu();
+                }
+            }
+
+            const viewDash = document.getElementById('view-dashboard');
+            const viewTool = document.getElementById('view-tool');
+            
+            document.getElementById('tool-subtitle').classList.add('hidden');
+            document.getElementById('tool-actions').innerHTML = '';
+            
+            if(tab === 'dashboard') {
+                document.getElementById('nav-title').innerText = "Dashboard";
+                viewDash.classList.remove('hidden');
+                viewTool.classList.add('hidden');
+                refreshUserData(); 
+            } else {
+                viewDash.classList.add('hidden');
+                viewTool.classList.remove('hidden');
+                renderTool(tab);
+            }
+        }
+
+        function renderTool(tab) {
+            const title = document.getElementById('tool-title');
+            const subtitle = document.getElementById('tool-subtitle');
+            const actions = document.getElementById('tool-actions');
+            const content = document.getElementById('tool-content');
+            
+            if(tab === 'cid') {
+                title.innerText = "Get Confirmation ID (CID)";
+                document.getElementById('nav-title').innerText = "Get CID";
+                content.innerHTML = `
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-blue-50/30 rounded-lg border border-blue-200 shadow-sm p-4 sm:p-6 flex flex-col h-full">
+                            <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[#0066cc]"></span> Enter Installation ID (IID)</h4>
+                            <div class="flex-1 space-y-4">
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Installation ID</label><textarea id="service-input" rows="5" class="w-full p-3 sm:p-4 border border-slate-300 rounded focus:outline-none focus:border-blue-500 font-mono text-sm resize-none" placeholder="Enter Installation ID...\ne.g. 6538036-4887361-2075811-5189442-7165976-5266023-0213021-0735812-8531921"></textarea></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Upload Image (OCR)</label><input type="file" id="ocr-upload" onchange="uploadOCR()" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border border-slate-300 file:text-xs file:font-semibold file:bg-slate-200 file:text-slate-700 hover:file:bg-slate-300 cursor-pointer"></div>
+                            </div>
+                            <div class="flex flex-col sm:flex-row gap-3 mt-6">
+                                <button onclick="executeService('cid')" id="btn-process" class="w-full sm:w-auto bg-[#0066cc] text-white px-6 py-2.5 sm:py-2 rounded font-bold shadow hover:bg-blue-700 transition flex justify-center items-center gap-2"><i class="fas fa-shield-alt"></i> Get CID</button>
+                                <button onclick="document.getElementById('service-input').value=''" class="w-full sm:w-auto bg-white border border-slate-300 text-slate-600 px-6 py-2.5 sm:py-2 rounded font-medium hover:bg-slate-50 transition">Clear</button>
+                            </div>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="bg-blue-50/30 rounded-lg border border-blue-200 shadow-sm p-4 sm:p-6 relative">
+                                <div class="flex gap-2 mb-6"><input type="text" id="cid-copy-full" readonly class="flex-1 p-2 sm:p-3 border border-slate-300 rounded bg-white font-mono text-xs sm:text-sm outline-none" placeholder=""><button onclick="copyToClipboard('cid-copy-full', this)" class="bg-slate-600 text-white px-4 sm:px-6 py-2 rounded font-bold hover:bg-slate-700 transition text-sm">Copy</button></div>
+                                <div class="grid grid-cols-4 sm:grid-cols-8 gap-2 text-center">
+                                    <div><p class="text-[10px] font-bold text-[#0066cc] mb-1">A</p><input type="text" id="cid-a" readonly class="w-full p-2 border border-slate-300 rounded text-center font-mono text-xs outline-none bg-white"></div><div><p class="text-[10px] font-bold text-[#0066cc] mb-1">B</p><input type="text" id="cid-b" readonly class="w-full p-2 border border-slate-300 rounded text-center font-mono text-xs outline-none bg-white"></div><div><p class="text-[10px] font-bold text-[#0066cc] mb-1">C</p><input type="text" id="cid-c" readonly class="w-full p-2 border border-slate-300 rounded text-center font-mono text-xs outline-none bg-white"></div><div><p class="text-[10px] font-bold text-[#0066cc] mb-1">D</p><input type="text" id="cid-d" readonly class="w-full p-2 border border-slate-300 rounded text-center font-mono text-xs outline-none bg-white"></div><div><p class="text-[10px] font-bold text-[#0066cc] mb-1">E</p><input type="text" id="cid-e" readonly class="w-full p-2 border border-slate-300 rounded text-center font-mono text-xs outline-none bg-white"></div><div><p class="text-[10px] font-bold text-[#0066cc] mb-1">F</p><input type="text" id="cid-f" readonly class="w-full p-2 border border-slate-300 rounded text-center font-mono text-xs outline-none bg-white"></div><div><p class="text-[10px] font-bold text-[#0066cc] mb-1">G</p><input type="text" id="cid-g" readonly class="w-full p-2 border border-slate-300 rounded text-center font-mono text-xs outline-none bg-white"></div><div><p class="text-[10px] font-bold text-[#0066cc] mb-1">H</p><input type="text" id="cid-h" readonly class="w-full p-2 border border-slate-300 rounded text-center font-mono text-xs outline-none bg-white"></div>
+                                </div>
+                            </div>
+                            <div class="bg-[#1c2434] rounded-lg shadow-sm p-4 sm:p-6 text-slate-300 border border-slate-700">
+                                <div class="space-y-4">
+                                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Installation ID</label><input type="text" id="term-iid" readonly class="w-full p-2.5 sm:p-3 bg-[#0f172a] border border-slate-700 rounded text-slate-300 font-mono text-xs sm:text-sm outline-none"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Confirmation ID</label><input type="text" id="term-cid" readonly class="w-full p-2.5 sm:p-3 bg-[#0f172a] border border-slate-700 rounded text-green-400 font-mono text-xs sm:text-sm outline-none"></div>
+                                </div>
+                                <div class="mt-4 text-right"><button onclick="copyToClipboard('term-cid', this)" class="border border-slate-600 text-slate-400 px-4 sm:px-5 py-2 sm:py-1.5 rounded text-xs font-bold hover:bg-slate-700 hover:text-white transition">Copy CID</button></div>
+                            </div>
+                            <div class="mt-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5"><i class="fab fa-microsoft text-blue-500 text-sm"></i> Get From Microsoft Server By Microserial</div>
+                        </div>
+                    </div>`;
+            } else if (tab === 'check') {
+                title.innerText = "Check Product Key";
+                document.getElementById('nav-title').innerText = "Check Key";
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 sm:p-6">
+                            <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[#0066cc]"></span> Enter Keys</h4>
+                            <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-blue-700 text-xs flex gap-2 items-start"><i class="fas fa-info-circle mt-0.5"></i><p><strong>Error codes:</strong> 0xC004C008 = can get CID by phone | 0xC004C060 / C003 = Key blocked</p></div>
+                            <textarea id="service-input" rows="5" class="w-full p-3 sm:p-4 border border-slate-300 rounded focus:outline-none focus:border-blue-500 font-mono text-sm resize-none" placeholder="Paste keys here..."></textarea>
+                            <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mt-4 text-sm">
+                                <button onclick="executeService('check')" id="btn-process" class="w-full sm:w-auto bg-[#0066cc] text-white px-5 py-2.5 sm:py-2 rounded font-bold shadow hover:bg-blue-700 transition flex justify-center items-center gap-2"><i class="fas fa-search"></i> Check Keys</button>
+                                <button onclick="document.getElementById('service-input').value=''" class="w-full sm:w-auto bg-white border border-slate-300 text-slate-600 px-5 py-2.5 sm:py-2 rounded font-medium hover:bg-slate-50 transition">Clear</button>
+                            </div>
+                            <div id="progress-container" class="hidden mt-6">
+                                <div class="flex justify-between text-xs mb-1"><span class="text-green-600 font-bold"><i class="fas fa-check"></i> Processing...</span></div>
+                                <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden"><div class="bg-gradient-to-r from-blue-500 to-purple-500 h-1.5 w-full animate-pulse"></div></div>
+                            </div>
+                        </div>
+                        <div id="results-section" class="hidden bg-white rounded-lg border border-slate-200 shadow-sm p-4 sm:p-6">
+                            <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[#0066cc]"></span> Results</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs whitespace-nowrap"><thead class="text-slate-400 uppercase tracking-wider font-bold border-b border-slate-100">
+                                    <tr><th class="py-3 px-2">#</th><th class="py-3 px-2">KEY</th><th class="py-3 px-2">PRODUCT</th><th class="py-3 px-2">ERROR CODE</th><th class="py-3 px-2">STATUS</th><th class="py-3 px-2">REMAINING</th></tr>
+                                </thead><tbody id="table-body" class="divide-y divide-slate-100"></tbody></table>
+                            </div>
+                            <div class="mt-6 pt-4 border-t border-slate-100 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5"><i class="fab fa-microsoft text-blue-500 text-sm"></i> Get From Microsoft Server By Microserial</div>
+                        </div>
+                    </div>`;
+            } else if(tab === 'recharge') {
+                title.innerText = "Add Funds to Balance";
+                document.getElementById('nav-title').innerText = "Recharge";
+                content.innerHTML = `
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 sm:p-6 space-y-6">
+                            <h4 class="font-bold text-slate-800 flex items-center gap-2"><i class="fas fa-robot text-green-500"></i> Auto Crypto Top-up</h4>
+                            <div class="p-3 bg-green-50 border border-green-200 rounded text-green-800 text-xs">Send USDT (TRC20), enter the TxID below, and get credited instantly.</div>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Binance Pay ID</label>
+                                    <div class="flex gap-2"><input type="text" id="rec-pay-id" value="460628758" readonly class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded font-mono text-xs sm:text-sm text-slate-800 outline-none"><button onclick="copyToClipboard('rec-pay-id', this)" class="bg-slate-200 text-slate-600 px-4 rounded hover:bg-slate-300 transition"><i class="fas fa-copy"></i></button></div>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">USDT (TRC20) Wallet</label>
+                                    <div class="flex gap-2"><input type="text" id="rec-wallet-id" value="TP1K3LVkZw5k1HxUrHd39acBmT4isNi31e" readonly class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded font-mono text-[10px] sm:text-xs text-slate-800 outline-none truncate"><button onclick="copyToClipboard('rec-wallet-id', this)" class="bg-slate-200 text-slate-600 px-4 rounded hover:bg-slate-300 transition"><i class="fas fa-copy"></i></button></div>
+                                </div>
+                                <hr class="border-slate-100">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1">Transaction ID (TxID)</label>
+                                    <input type="text" id="rec-trx" placeholder="Paste TxID here..." class="w-full p-3 border border-slate-300 rounded outline-none focus:border-green-500 font-mono text-sm mb-3">
+                                    <button id="btn-recharge-submit" onclick="submitRecharge()" class="w-full bg-green-600 text-white py-3 rounded font-bold shadow hover:bg-green-700 transition"><i class="fas fa-check-circle mr-1"></i> Verify TxID</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 sm:p-6 flex flex-col h-fit">
+                            <h4 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><i class="fas fa-gift text-orange-500"></i> Redeem Promo Code</h4>
+                            <p class="text-xs sm:text-sm text-slate-500 mb-6">Have a gift card or a promotional code? Enter it below to add funds directly to your wallet.</p>
+                            
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">Enter Code</label>
+                            <input type="text" id="promo-input" placeholder="e.g. MS-XXXX-XXXX" class="w-full p-4 border border-slate-300 rounded outline-none focus:border-orange-500 font-mono text-center text-lg tracking-widest uppercase mb-4 shadow-inner bg-slate-50">
+                            
+                            <button id="btn-promo-submit" onclick="redeemPromoCode()" class="w-full bg-orange-500 text-white py-3.5 rounded font-bold shadow hover:bg-orange-600 transition flex justify-center items-center gap-2">
+                                <i class="fas fa-bolt"></i> Redeem Code
+                            </button>
+                        </div>
+                    </div>`;
+            } else if (tab === 'downloads') {
+                title.innerText = "Software Downloads";
+                subtitle.innerText = "Direct official download links controlled by Admin";
+                subtitle.classList.remove('hidden');
+                document.getElementById('nav-title').innerText = "Downloads";
+                content.innerHTML = `
+                    <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 sm:p-6 max-w-4xl mx-auto">
+                        <div class="p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded text-blue-800 text-xs sm:text-sm flex gap-3 items-start mb-6">
+                            <i class="fas fa-cloud-download-alt mt-1"></i>
+                            <p>Select your category, product, and preferred language below to get the official download link.</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
+                            <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">1. Category</label>
+                                <select id="dl-category" onchange="loadProducts()" class="w-full p-3 border border-slate-300 rounded outline-none focus:border-blue-500 text-sm bg-slate-50">
+                                    <option value="" disabled selected>Loading...</option>
+                                </select>
+                            </div>
+                            <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">2. Product Version</label>
+                                <select id="dl-product" onchange="loadLanguages()" disabled class="w-full p-3 border border-slate-300 rounded outline-none focus:border-blue-500 text-sm disabled:opacity-50 disabled:bg-slate-100">
+                                    <option value="" disabled selected>Waiting for Category...</option>
+                                </select>
+                            </div>
+                            <div><label class="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">3. Language</label>
+                                <select id="dl-language" onchange="generateDownloadLink()" disabled class="w-full p-3 border border-slate-300 rounded outline-none focus:border-blue-500 text-sm disabled:opacity-50 disabled:bg-slate-100">
+                                    <option value="" disabled selected>Waiting for Product...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="dl-result-box" class="hidden bg-[#1c2434] rounded-lg shadow-sm p-4 sm:p-6 text-slate-300 border border-slate-700">
+                            <div class="flex items-center gap-3 mb-4">
+                                <i class="fas fa-box-open text-[#0066cc] text-xl"></i>
+                                <div><p class="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider">Selected Product</p><h4 id="dl-result-name" class="text-white font-bold text-base sm:text-lg">---</h4></div>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Official Direct Link</label>
+                                <div class="flex gap-2"><input type="text" id="dl-final-link" readonly class="w-full p-2.5 sm:p-3 bg-[#0f172a] border border-slate-700 rounded text-blue-400 font-mono text-xs sm:text-sm outline-none"><button onclick="copyToClipboard('dl-final-link', this)" class="bg-[#0066cc] text-white px-4 sm:px-6 rounded font-bold hover:bg-blue-700 transition shadow">Copy</button></div>
+                            </div>
+                            <div class="mt-4 text-center"><a href="#" id="dl-action-btn" target="_blank" class="block w-full sm:w-auto sm:inline-block bg-green-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-700 transition shadow-lg"><i class="fas fa-download mr-2"></i> Download Now</a></div>
+                        </div>
+                    </div>`;
+                loadDynamicDownloads(); 
+            } else if(tab === 'api') {
+                title.innerText = "Developer API";
+                subtitle.innerText = "Integrate Microserial with your Telegram bots, websites, and custom tools.";
+                subtitle.classList.remove('hidden');
+                document.getElementById('nav-title').innerText = "API Docs";
+                
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                            <div>
+                                <h4 class="font-bold text-slate-800 mb-1 flex items-center gap-2"><i class="fas fa-key text-indigo-500"></i> Your Secret API Key</h4>
+                                <p class="text-xs text-slate-500">Do not share this key. It grants full access to your balance.</p>
+                            </div>
+                            <div class="flex gap-2 w-full lg:w-auto">
+                                <input type="password" id="dev-api-key" value="Loading..." readonly class="w-full lg:w-64 p-2.5 sm:p-3 bg-slate-50 border border-slate-200 rounded font-mono text-xs sm:text-sm text-slate-800 outline-none text-center tracking-widest cursor-pointer" onclick="this.type='text'; setTimeout(() => this.type='password', 5000);" title="Click to reveal for 5 seconds">
+                                <button onclick="copyToClipboard('dev-api-key', this)" class="bg-indigo-600 text-white px-4 sm:px-5 rounded font-bold hover:bg-indigo-700 transition shadow-sm" title="Copy API Key"><i class="fas fa-copy"></i></button>
+                                <button onclick="regenerateApiKey()" class="bg-slate-200 text-slate-600 px-3 sm:px-4 rounded font-bold hover:bg-slate-300 transition shadow-sm" title="Regenerate Key"><i class="fas fa-sync-alt"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#0f172a] rounded-xl shadow-lg overflow-hidden border border-slate-700">
+                            <div class="bg-[#1e293b] px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-700 flex gap-2">
+                                <div class="w-3 h-3 rounded-full bg-red-500"></div><div class="w-3 h-3 rounded-full bg-yellow-500"></div><div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            </div>
+                            <div class="p-4 sm:p-6 md:p-8 space-y-8">
+                                <div>
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <span class="bg-green-500/20 text-green-400 font-bold px-2 py-1 rounded text-[10px] sm:text-xs uppercase tracking-wider">GET</span>
+                                        <h4 class="text-white font-mono text-base sm:text-lg truncate">/api/v1/get-cid</h4>
+                                    </div>
+                                    <p class="text-slate-400 text-xs sm:text-sm mb-4">Generates a Confirmation ID from a given Installation ID. Deducts $0.07 from your balance.</p>
+                                    <div class="bg-[#1e293b] p-3 sm:p-4 rounded-lg overflow-x-auto">
+                                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 border-b border-slate-700 pb-2">Request Example (cURL)</p>
+                                        <pre class="text-indigo-300 font-mono text-[10px] sm:text-sm whitespace-pre-wrap break-words">curl -X GET "${window.location.origin}/api/v1/get-cid?apikey=<span class="text-yellow-300">YOUR_API_KEY</span>&iid=<span class="text-green-300">1234567...</span>"</pre>
+                                    </div>
+                                    <div class="bg-[#1e293b] p-3 sm:p-4 rounded-lg mt-2 overflow-x-auto">
+                                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 border-b border-slate-700 pb-2">Success Response (JSON)</p>
+                                        <pre class="text-green-300 font-mono text-[10px] sm:text-sm">{
+  "success": true,
+  "iid": "123456789...",
+  "cid": "098765-432109-...",
+  "cost": 0.07,
+  "remaining_balance": 15.43
+}</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                fetchApiKey();
+            } else if(tab === 'history') {
+                title.innerText = "Operation History";
+                subtitle.innerText = "Full log of all operations saved to database";
+                subtitle.classList.remove('hidden');
+                actions.innerHTML = `<button onclick="loadHistory()" class="bg-white border border-[#0066cc] text-[#0066cc] px-4 py-2 rounded text-xs sm:text-sm font-bold shadow-sm hover:bg-blue-50 transition flex items-center gap-2"><i class="fas fa-sync-alt"></i> Refresh</button>`;
+                document.getElementById('nav-title').innerText = "History";
+                content.innerHTML = `
+                    <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 sm:p-6">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-4 mb-4 gap-4">
+                            <div class="flex gap-3 sm:gap-4 text-xs sm:text-sm overflow-x-auto w-full pb-2 sm:pb-0" id="history-filters">
+                                <button onclick="filterHistory('All')" data-type="All" class="filter-btn whitespace-nowrap font-bold text-[#0066cc] border-b-2 border-[#0066cc] pb-2 sm:pb-4 sm:-mb-4 px-2 transition">All</button>
+                                <button onclick="filterHistory('Get CID')" data-type="Get CID" class="filter-btn whitespace-nowrap text-slate-500 font-medium pb-2 sm:pb-4 sm:-mb-4 border-b-2 border-transparent px-2 hover:text-slate-800 transition"><i class="fas fa-key text-orange-400 mr-1"></i> Get CID</button>
+                                <button onclick="filterHistory('Check Key')" data-type="Check Key" class="filter-btn whitespace-nowrap text-slate-500 font-medium pb-2 sm:pb-4 sm:-mb-4 border-b-2 border-transparent px-2 hover:text-slate-800 transition"><i class="fas fa-search text-[#0066cc] mr-1"></i> Check Key</button>
+                            </div>
+                            <button onclick="clearHistory()" class="bg-white border border-red-500 text-red-600 px-3 py-1.5 rounded text-xs font-bold hover:bg-red-50 transition whitespace-nowrap"><i class="fas fa-trash-alt mr-1"></i> Clear All</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs whitespace-nowrap">
+                                <thead class="text-slate-400 uppercase tracking-wider font-bold border-b border-slate-100">
+                                    <tr><th class="py-3 px-2 w-8"><input type="checkbox" class="rounded border-slate-300"></th><th class="py-3 px-2">S.NO</th><th class="py-3 px-2">TOOL</th><th class="py-3 px-2">INPUT</th><th class="py-3 px-2">PRODUCT NAME</th><th class="py-3 px-2">ERROR CODE / RESULT</th><th class="py-3 px-2">STATUS</th><th class="py-3 px-2 text-right">DATE & TIME</th></tr>
+                                </thead>
+                                <tbody id="history-table-body" class="divide-y divide-slate-100">
+                                    <tr><td colspan="8" class="text-center py-8 text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> Loading history...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>`;
+                loadHistory();
+            } else if(tab === 'admin') {
+                title.innerText = "Admin Management Center";
+                document.getElementById('nav-title').innerText = "Admin Panel";
+                content.innerHTML = `
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+                        <div id="admin-requests-container" class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 sm:p-6 overflow-x-auto"></div>
+                        
+                        <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 sm:p-6">
+                            <h4 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="fas fa-gift text-orange-500"></i> Generate Promo Codes</h4>
+                            <div class="flex gap-3 mb-4">
+                                <div class="flex-1">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Value ($)</label>
+                                    <input type="number" id="gen-promo-val" value="10" class="w-full p-2.5 sm:p-3 border rounded text-sm bg-slate-50 outline-none focus:border-orange-500">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">How Many Codes?</label>
+                                    <input type="number" id="gen-promo-count" value="5" class="w-full p-2.5 sm:p-3 border rounded text-sm bg-slate-50 outline-none focus:border-orange-500">
+                                </div>
+                            </div>
+                            <button onclick="adminGeneratePromo()" class="w-full bg-orange-500 text-white py-2.5 rounded font-bold shadow hover:bg-orange-600 transition mb-4">Generate</button>
+                            <textarea id="gen-promo-result" rows="4" readonly class="w-full p-3 border border-slate-200 rounded font-mono text-xs bg-slate-100 outline-none" placeholder="Generated codes will appear here..."></textarea>
+                        </div>
+                    </div>
+                    <div id="admin-users-container" class="mb-6 bg-white rounded-lg border border-slate-200 shadow-sm p-4 sm:p-6 overflow-x-auto"></div>
+                    <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 sm:p-6">
+                        <h4 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="fas fa-cloud-download-alt text-purple-500"></i> Manage Download Links</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                            <input type="text" id="add-dl-cat" placeholder="Category (e.g. Windows)" class="p-2.5 sm:p-3 border rounded text-sm bg-slate-50 outline-none focus:border-purple-500">
+                            <input type="text" id="add-dl-name" placeholder="Product Name (e.g. Win 11 Pro)" class="p-2.5 sm:p-3 border rounded text-sm bg-slate-50 outline-none focus:border-purple-500">
+                            <input type="text" id="add-dl-lang" placeholder="Language (e.g. English)" class="p-2.5 sm:p-3 border rounded text-sm bg-slate-50 outline-none focus:border-purple-500">
+                            <input type="text" id="add-dl-url" placeholder="Direct Download URL" class="p-2.5 sm:p-3 border rounded text-sm bg-slate-50 outline-none focus:border-purple-500">
+                        </div>
+                        <button onclick="adminAddDownload()" class="w-full md:w-auto bg-purple-600 text-white px-6 py-2.5 sm:py-2 rounded text-sm font-bold shadow hover:bg-purple-700 transition">Add Download Link</button>
+                        <div id="admin-downloads-list" class="mt-6 space-y-2"></div>
+                    </div>`;
+                fetchAdminRequests();
+                fetchAdminUsers();
+                fetchAdminDownloads(); 
+            }
+        }
+
+        // --- Developer API Functions ---
+        async function fetchApiKey() {
+            try {
+                const res = await fetch(`${API}/user/apikey?userId=${user.id}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    document.getElementById('dev-api-key').value = data.api_key;
+                }
+            } catch (e) {
+                document.getElementById('dev-api-key').value = "Error loading key";
+            }
+        }
+
+        async function regenerateApiKey() {
+            if (!confirm("Are you sure? Generating a new key will immediately break any bots or websites currently using your old key!")) return;
+            try {
+                const res = await fetch(`${API}/user/apikey/regenerate`, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ userId: user.id }) 
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    document.getElementById('dev-api-key').value = data.api_key;
+                    showToast("New API Key generated successfully!", "success");
+                }
+            } catch (e) { showToast("Error regenerating key.", "error"); }
+        }
+
+        // --- Promo Code Functions ---
+        async function redeemPromoCode() {
+            const codeInput = document.getElementById('promo-input');
+            const code = codeInput.value.trim().toUpperCase();
+            if(!code) return showToast("Please enter a promo code.", "error");
+
+            const btn = document.getElementById('btn-promo-submit');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Redeeming...';
+
+            try {
+                const res = await fetch(`${API}/redeem-promo`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ userId: user.id, code: code })
+                });
+                const data = await res.json();
+                
+                showToast(data.msg, data.status === 'success' ? 'success' : 'error');
+                if(data.status === 'success') {
+                    codeInput.value = '';
+                    refreshUserData();
+                    switchTab('dashboard');
+                }
+            } catch(e) {
+                showToast("Connection error.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-bolt"></i> Redeem Code';
+            }
+        }
+
+        async function adminGeneratePromo() {
+            const amount = document.getElementById('gen-promo-val').value;
+            const count = document.getElementById('gen-promo-count').value;
+            if(!amount || !count || amount <= 0 || count <= 0) return showToast("Please enter valid amount and count.", "error");
+
+            try {
+                const res = await fetch(`${API}/admin/generate-promo`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ amount, count })
+                });
+                const data = await res.json();
+                if(data.status === 'success') {
+                    document.getElementById('gen-promo-result').value = data.codes.join('\n');
+                    showToast(data.msg, "success");
+                } else {
+                    showToast(data.msg, "error");
+                }
+            } catch(e) {
+                showToast("Connection error.", "error");
+            }
+        }
+
+        // --- Dynamic Downloads System ---
+        async function loadDynamicDownloads() {
+            try {
+                const res = await fetch(`${API}/downloads`);
+                allDynamicDownloads = await res.json();
+                const catSelect = document.getElementById('dl-category');
+                if(allDynamicDownloads.length === 0) {
+                    catSelect.innerHTML = `<option value="" disabled selected>No links available yet...</option>`;
+                    return;
+                }
+                const categories = [...new Set(allDynamicDownloads.map(d => d.category))];
+                let html = `<option value="" disabled selected>Select Category...</option>`;
+                categories.forEach(c => { html += `<option value="${c}">${c}</option>`; });
+                catSelect.innerHTML = html;
+            } catch(e) {
+                document.getElementById('dl-category').innerHTML = `<option value="" disabled selected>Error loading data...</option>`;
+            }
+        }
+
+        window.loadProducts = function() {
+            const cat = document.getElementById('dl-category').value;
+            const prodSelect = document.getElementById('dl-product');
+            const langSelect = document.getElementById('dl-language');
+            document.getElementById('dl-result-box').classList.add('hidden');
+            langSelect.innerHTML = `<option value="" disabled selected>Waiting for Product...</option>`;
+            langSelect.disabled = true;
+
+            const products = [...new Set(allDynamicDownloads.filter(d => d.category === cat).map(d => d.product_name))];
+            let html = `<option value="" disabled selected>Select Product Version...</option>`;
+            products.forEach(p => { html += `<option value="${p}">${p}</option>`; });
+            prodSelect.innerHTML = html;
+            prodSelect.disabled = false;
+        };
+
+        window.loadLanguages = function() {
+            const cat = document.getElementById('dl-category').value;
+            const prod = document.getElementById('dl-product').value;
+            const langSelect = document.getElementById('dl-language');
+            document.getElementById('dl-result-box').classList.add('hidden');
+            
+            const languages = allDynamicDownloads.filter(d => d.category === cat && d.product_name === prod);
+            let html = `<option value="" disabled selected>Select Language...</option>`;
+            languages.forEach(l => { html += `<option value="${l.id}">${l.language}</option>`; });
+            langSelect.innerHTML = html;
+            langSelect.disabled = false;
+        };
+
+        window.generateDownloadLink = function() {
+            const downloadId = document.getElementById('dl-language').value;
+            if(!downloadId) return;
+            const selected = allDynamicDownloads.find(d => d.id == downloadId);
+            if(!selected) return;
+
+            document.getElementById('dl-result-name').innerText = `${selected.product_name} (${selected.language})`;
+            document.getElementById('dl-final-link').value = selected.url;
+            document.getElementById('dl-action-btn').href = selected.url;
+            document.getElementById('dl-result-box').classList.remove('hidden');
+        };
+
+        // --- Admin Downloads Management ---
+        async function fetchAdminDownloads() {
+            const res = await fetch(`${API}/downloads`);
+            const data = await res.json();
+            let html = '';
+            if(data.length === 0) html = '<p class="text-slate-400 text-sm">No download links added yet.</p>';
+            data.forEach(d => {
+                html += `<div class="p-3 border rounded flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 hover:bg-slate-100 transition gap-2 sm:gap-0">
+                    <div>
+                        <span class="text-[10px] font-bold bg-slate-200 px-2 py-1 rounded text-slate-600 mr-2 uppercase">${d.category}</span>
+                        <span class="font-bold text-sm text-slate-800">${d.product_name}</span>
+                        <span class="text-xs text-slate-500 ml-2">(${d.language})</span>
+                    </div>
+                    <button onclick="adminDeleteDownload(${d.id})" class="text-red-500 hover:text-red-700 p-2"><i class="fas fa-trash-alt"></i></button>
+                </div>`;
+            });
+            document.getElementById('admin-downloads-list').innerHTML = html;
+        }
+
+        async function adminAddDownload() {
+            const category = document.getElementById('add-dl-cat').value;
+            const product_name = document.getElementById('add-dl-name').value;
+            const language = document.getElementById('add-dl-lang').value;
+            const url = document.getElementById('add-dl-url').value;
+
+            if(!category || !product_name || !url) return showToast("Please fill required fields (Category, Name, URL).", "error");
+
+            await fetch(`${API}/admin/downloads`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ category, product_name, language, url })
+            });
+            
+            document.getElementById('add-dl-cat').value = '';
+            document.getElementById('add-dl-name').value = '';
+            document.getElementById('add-dl-lang').value = '';
+            document.getElementById('add-dl-url').value = '';
+            
+            showToast("Download link added successfully!", "success");
+            fetchAdminDownloads();
+        }
+
+        async function adminDeleteDownload(id) {
+            if(!confirm("Are you sure you want to delete this link?")) return;
+            await fetch(`${API}/admin/downloads/delete`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id })
+            });
+            showToast("Link deleted.", "success");
+            fetchAdminDownloads();
+        }
+
+        // --- OCR & Image Compression ---
+        async function uploadOCR() {
+            const fileInput = document.getElementById('ocr-upload');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const textarea = document.getElementById('service-input');
+            textarea.value = "Compressing and extracting ID, please wait...";
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = async function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1500; const MAX_HEIGHT = 1500;
+                    let width = img.width; let height = img.height;
+
+                    if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
+                    else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+                    
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    const base64Data = compressedDataUrl.split(',')[1];
+
+                    try {
+                        const res = await fetch(`${API}/ocr`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ mime_type: 'image/jpeg', image_base64: base64Data }) });
+                        const data = await res.json();
+                        
+                        if (data.status === 'success' && data.extracted_text) {
+                            const numbersOnly = data.extracted_text.replace(/[^0-9]/g, '');
+                            const match63 = numbersOnly.match(/\d{63}/);
+                            const match54 = numbersOnly.match(/\d{54}/);
+                            if (match63) textarea.value = match63[0].match(/.{1,7}/g).join('-');
+                            else if (match54) textarea.value = match54[0].match(/.{1,6}/g).join('-');
+                            else textarea.value = numbersOnly || data.extracted_text;
+                            showToast("ID extracted successfully!", "success");
+                        } else {
+                            textarea.value = ""; showToast(data.errormsg || data.msg || "No clear numbers found in the image.", "error");
+                        }
+                    } catch(err) {
+                        textarea.value = ""; showToast("Error connecting to the text extraction server.", "error");
+                    } finally { fileInput.value = ""; }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- Main Services Execution ---
+        async function executeService(type) {
+            const val = document.getElementById('service-input').value.trim();
+            if(!val) return showToast("Please enter the required data.", "error");
+            
+            const btn = document.getElementById('btn-process');
+            const errorMsgBox = document.getElementById('cid-error-msg');
+            if(errorMsgBox) { errorMsgBox.classList.add('hidden'); errorMsgBox.innerHTML = ''; }
+            
+            btn.disabled = true; 
+            if(type === 'cid') { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...'; } 
+            else {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+                document.getElementById('progress-container').classList.remove('hidden');
+                document.getElementById('results-section').classList.remove('hidden');
+                document.getElementById('table-body').innerHTML = `<tr><td colspan="6" class="text-center py-4 text-slate-400">Loading data...</td></tr>`;
+            }
+
+            try {
+                const endpoint = type === 'cid' ? `get-cid?userId=${user.id}&iid=${val}` : `check-key?userId=${user.id}&key=${val}`;
+                const res = await fetch(`${API}/${endpoint}`);
+                const data = await res.json();
+                
+                if (type === 'cid') {
+                    if(data.status === 'failed' || data.errormsg) {
+                        const errorText = (data.errormsg || data.msg || "").toLowerCase();
+                        if (errorText.includes('insufficient') || errorText.includes('رصيد')) {
+                            const estCids = Math.floor(user.balance / 0.07);
+                            errorMsgBox.innerHTML = `❌ Insufficient CID Balance <span class="text-slate-400 font-normal mx-2">|</span> <span class="text-slate-600">CID Balance: ${estCids}</span> <span class="text-slate-400 font-normal mx-2">|</span> <a href="#" onclick="switchTab('recharge')" class="text-[#0066cc] font-bold hover:underline">Buy CIDs &rarr;</a>`;
+                            errorMsgBox.classList.remove('hidden');
+                        } else {
+                            showToast(data.errormsg || data.msg || "Error processing request.", "error");
+                        }
+                    } else {
+                        const cleanCid = data.cid.replace(/[^0-9]/g, ''); 
+                        document.getElementById('cid-copy-full').value = data.cid;
+                        document.getElementById('term-cid').value = data.cid;
+                        document.getElementById('term-iid').value = val;
+                        const blocks = cleanCid.match(/.{1,6}/g) || [];
+                        if(blocks[0]) document.getElementById('cid-a').value = blocks[0];
+                        if(blocks[1]) document.getElementById('cid-b').value = blocks[1];
+                        if(blocks[2]) document.getElementById('cid-c').value = blocks[2];
+                        if(blocks[3]) document.getElementById('cid-d').value = blocks[3];
+                        if(blocks[4]) document.getElementById('cid-e').value = blocks[4];
+                        if(blocks[5]) document.getElementById('cid-f').value = blocks[5];
+                        if(blocks[6]) document.getElementById('cid-g').value = blocks[6];
+                        if(blocks[7]) document.getElementById('cid-h').value = blocks[7];
+                        showToast("CID generated successfully!", "success");
+                        refreshUserData(); 
+                    }
+                } else if (type === 'check') {
+                    let statusBadge = (data.status === "failed" || (data.msg && data.msg.toLowerCase().includes('block'))) 
+                        ? `<span class="bg-red-50 text-red-600 px-2 py-0.5 rounded text-[10px] font-bold">Blocked</span>`
+                        : `<span class="bg-green-50 text-green-600 px-2 py-0.5 rounded text-[10px] font-bold">Valid</span>`;
+                    document.getElementById('table-body').innerHTML = `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="py-3 px-2 text-slate-500">1</td>
+                            <td class="py-3 px-2 font-mono text-slate-800">${val}</td>
+                            <td class="py-3 px-2 text-slate-600">${data.prd || 'Unknown Product'}</td>
+                            <td class="py-3 px-2 font-mono text-slate-500">${data.errorcode || 'N/A'}</td>
+                            <td class="py-3 px-2">${statusBadge}</td>
+                            <td class="py-3 px-2 font-mono text-slate-600">${data.count || '-1'}</td>
+                        </tr>`;
+                    showToast("Key check completed.", "success");
+                    refreshUserData();
+                }
+            } catch(e) {
+                if(type === 'cid') showToast("Connection Error.", "error");
+                else document.getElementById('table-body').innerHTML = `<tr><td colspan="6" class="text-center py-4 text-red-500">Connection Error.</td></tr>`;
+            } finally {
+                btn.disabled = false; 
+                if(type === 'cid') btn.innerHTML = '<i class="fas fa-shield-alt"></i> Get CID';
+                else { btn.innerHTML = '<i class="fas fa-search"></i> Check Keys'; document.getElementById('progress-container').classList.add('hidden'); }
+            }
+        }
+
+        async function submitRecharge() {
+            const trxId = document.getElementById('rec-trx').value.trim();
+            if(!trxId) return showToast("Please enter the Transaction ID.", "error");
+            
+            const btn = document.getElementById('btn-recharge-submit');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying with Binance...';
+
+            try {
+                const res = await fetch(`${API}/submit-recharge`, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ userId: user.id, username: user.username, trxId }) 
+                });
+                const data = await res.json();
+                
+                showToast(data.msg, data.status === 'success' ? 'success' : 'error');
+                
+                if(data.status === 'success') {
+                    document.getElementById('rec-trx').value = '';
+                    refreshUserData();
+                    switchTab('dashboard');
+                }
+            } catch(e) {
+                showToast("Connection error with the server.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Verify TxID';
+            }
+        }
+
+        window.filterHistory = function(type) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.getAttribute('data-type') === type) btn.className = `filter-btn whitespace-nowrap font-bold text-[#0066cc] border-b-2 border-[#0066cc] pb-2 sm:pb-4 sm:-mb-4 px-2 transition`;
+                else btn.className = `filter-btn whitespace-nowrap text-slate-500 font-medium pb-2 sm:pb-4 sm:-mb-4 border-b-2 border-transparent px-2 hover:text-slate-800 transition`;
+            });
+            renderHistoryTable(type);
+        }
+
+        function renderHistoryTable(filterType) {
+            const tbody = document.getElementById('history-table-body');
+            if(!tbody) return;
+            let filteredData = filterType === 'All' ? currentHistoryData : currentHistoryData.filter(row => row.tool === filterType);
+            if (filteredData.length === 0) { tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">No operations found.</td></tr>`; return; }
+
+            let html = '';
+            filteredData.forEach((row, index) => {
+                let toolBadge = '';
+                if (row.tool === 'Check Key') toolBadge = `<span class="bg-yellow-50 text-yellow-600 px-2 py-1 rounded text-[10px] font-bold"><i class="fas fa-search mr-1"></i> Check Key</span>`;
+                else if (row.tool === 'Get CID' || row.tool === 'API - Get CID') toolBadge = `<span class="bg-orange-50 text-orange-500 px-2 py-1 rounded text-[10px] font-bold"><i class="fas fa-key mr-1"></i> Get CID</span>`;
+                else toolBadge = `<span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold"><i class="fas fa-wallet mr-1"></i> Redeem</span>`;
+
+                let resultColor = row.status === 'Success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500';
+                if(row.result_code === 'Insufficient Balance') resultColor = 'bg-red-50 text-red-500';
+                
+                let statusBadge = row.status === 'Success' ? `<span class="text-green-600 font-bold"><i class="fas fa-check mr-1"></i> Success</span>` : (row.status === 'Pending' ? `<span class="text-yellow-600 font-bold"><i class="fas fa-clock mr-1"></i> Pending</span>` : `<span class="text-red-500 font-bold"><i class="fas fa-times mr-1"></i> Failed</span>`);
+
+                const dateObj = new Date(row.timestamp);
+                const formattedDate = dateObj.toLocaleDateString() + ', ' + dateObj.toLocaleTimeString();
+
+                html += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-2"><input type="checkbox" class="rounded border-slate-300"></td>
+                        <td class="py-3 px-2 text-slate-500">${index + 1}</td>
+                        <td class="py-3 px-2">${toolBadge}</td>
+                        <td class="py-3 px-2 font-mono text-slate-800 text-[10px] max-w-[150px] sm:max-w-xs truncate" title="${row.input_data}">${row.input_data}</td>
+                        <td class="py-3 px-2 text-slate-600 flex items-center gap-2 mt-1">${row.tool === 'Redeem' ? '<i class="fab fa-bitcoin text-yellow-500"></i>' : (row.product_name.includes('Win') ? '<i class="fab fa-windows text-blue-500"></i>' : '<i class="fas fa-file-word text-orange-500"></i>')} ${row.product_name}</td>
+                        <td class="py-3 px-2"><span class="${resultColor} px-2 py-0.5 rounded text-[10px] font-mono font-bold">${row.result_code}</span></td>
+                        <td class="py-3 px-2 text-[11px]">${statusBadge}</td>
+                        <td class="py-3 px-2 text-right text-slate-500 text-[10px]">${formattedDate}</td>
+                    </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        async function loadHistory() {
+            try {
+                const res = await fetch(`${API}/history?userId=${user.id}`);
+                currentHistoryData = await res.json();
+                renderHistoryTable('All');
+            } catch(e) { document.getElementById('history-table-body').innerHTML = `<tr><td colspan="8" class="text-center py-8 text-red-400">Failed to load history.</td></tr>`; }
+        }
+
+        async function clearHistory() {
+            if (!confirm("Are you sure you want to clear all your operation history?")) return;
+            try {
+                await fetch(`${API}/history/clear`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId: user.id }) });
+                showToast("History cleared successfully.", "success");
+                loadHistory();
+            } catch(e) { showToast("Failed to clear history.", "error"); }
+        }
+
+        // --- Admin Panel Functions ---
+        async function fetchAdminRequests() {
+            const res = await fetch(`${API}/admin/requests`);
+            const data = await res.json();
+            let html = `<h4 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="fas fa-bell text-orange-500"></i> Pending Top-ups</h4><div class="space-y-3">`;
+            data.forEach(r => {
+                html += `<div class="p-3 sm:p-4 border rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-50 border-slate-200 gap-3 sm:gap-0">
+                    <div><p class="font-bold text-slate-800">${r.username} <span class="text-green-600 ml-2 font-black">+$${r.amount}</span></p><p class="text-xs text-slate-500 font-mono mt-1">TRX: <span class="truncate block max-w-[200px] sm:max-w-none">${r.trxId}</span></p></div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="adminAction('approve', ${r.id}, ${r.userId}, ${r.amount})" class="flex-1 sm:flex-none bg-[#0066cc] text-white px-3 py-2 sm:py-1.5 rounded text-sm font-bold">Approve</button>
+                        <button onclick="adminAction('reject', ${r.id})" class="flex-1 sm:flex-none bg-red-50 text-red-600 px-3 py-2 sm:py-1.5 rounded text-sm font-bold border border-red-200">Reject</button>
+                    </div></div>`;
+            });
+            document.getElementById('admin-requests-container').innerHTML = html + (data.length ? "</div>" : "<p class='text-slate-500 text-sm'>No pending requests.</p>");
+        }
+
+        async function fetchAdminUsers() {
+            const res = await fetch(`${API}/admin/users`);
+            const users = await res.json();
+            let html = `<h4 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="fas fa-users text-blue-500"></i> Manage Users</h4>
+                <div class="overflow-x-auto rounded-lg border border-slate-200 shadow-sm"><table class="w-full text-left text-sm whitespace-nowrap"><thead class="bg-slate-100 text-slate-600 uppercase text-[10px] font-bold tracking-widest"><tr><th class="p-3 sm:p-4">User</th><th class="p-3 sm:p-4">Email</th><th class="p-3 sm:p-4">Balance</th><th class="p-3 sm:p-4">Ops (CID/CHK)</th><th class="p-3 sm:p-4">Add Balance</th></tr></thead><tbody class="divide-y divide-slate-100">`;
+            users.forEach(u => {
+                html += `<tr class="hover:bg-slate-50"><td class="p-3 sm:p-4 font-bold">${u.username} ${u.role === 'admin' ? '<span class="bg-red-100 text-red-600 text-[9px] px-2 py-0.5 rounded ml-2">ADMIN</span>' : ''}</td><td class="p-3 sm:p-4 text-slate-500 text-xs">${u.email}</td><td class="p-3 sm:p-4 font-black text-green-600">$${u.balance.toFixed(2)}</td><td class="p-3 sm:p-4 text-slate-500 font-mono text-xs">${u.cid_count} / ${u.check_count}</td><td class="p-3 sm:p-4 flex gap-2"><input type="number" id="add-bal-${u.id}" class="w-16 sm:w-20 p-2 border rounded text-xs outline-none focus:border-blue-500"><button onclick="addManualBalance(${u.id})" class="bg-green-600 text-white px-3 py-2 rounded text-xs font-bold hover:bg-green-700 shadow-sm"><i class="fas fa-plus"></i></button></td></tr>`;
+            });
+            document.getElementById('admin-users-container').innerHTML = html + `</tbody></table></div>`;
+        }
+
+        async function adminAction(action, requestId, userId = null, amount = null) {
+            await fetch(`${API}/admin/${action}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ requestId, userId, amount }) });
+            showToast(`Action ${action} completed successfully.`, "success");
+            fetchAdminRequests(); fetchAdminUsers();
+        }
+
+        async function addManualBalance(userId) {
+            const amount = parseFloat(document.getElementById(`add-bal-${userId}`).value);
+            if(!amount || amount <= 0) return showToast("Please enter a valid amount.", "error");
+            await fetch(`${API}/admin/add-balance`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId, amount }) });
+            showToast("Balance added successfully.", "success");
+            fetchAdminUsers();
+        }
+
+        window.copyToClipboard = function(elementId, btnElement) {
+            const inputElement = document.getElementById(elementId);
+            if (!inputElement.value) return;
+            navigator.clipboard.writeText(inputElement.value).then(() => {
+                showToast("Copied to clipboard!", "success");
+            });
+        }
+
+        function logout() { localStorage.clear(); location.reload(); }
+    </script>
+</body>
+</html>
